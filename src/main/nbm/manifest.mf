@@ -2,5 +2,5 @@ Manifest-Version: 1.0
 OpenIDE-Module: org.zeroturnaround.jrebel.netbeans.plugin_installer
 OpenIDE-Module-Install: org/zeroturnaround/netbeans/open/Installer.class
 OpenIDE-Module-Localizing-Bundle: org/zeroturnaround/netbeans/open/Bundle.properties
-OpenIDE-Module-Show-In-AutoUpdate-Client: true
+AutoUpdate-Show-In-Client: true
 

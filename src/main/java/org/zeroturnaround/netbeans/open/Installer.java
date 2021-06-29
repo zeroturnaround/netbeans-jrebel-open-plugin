@@ -23,6 +23,7 @@
  */
 package org.zeroturnaround.netbeans.open;
 
+import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
@@ -42,6 +43,7 @@ import org.netbeans.api.autoupdate.UpdateUnitProvider;
 import org.netbeans.api.autoupdate.UpdateUnitProviderFactory;
 import org.netbeans.api.progress.ProgressHandle;
 import org.openide.modules.ModuleInstall;
+import org.openide.util.Exceptions;
 
 public class Installer extends ModuleInstall {
 
@@ -123,8 +125,8 @@ public class Installer extends ModuleInstall {
 
             if (r != null) {
 
-                JOptionPane.showMessageDialog(null, "JRebel for NetBeans has been successfully installed.", "JRebel for NetBeans Installer", JOptionPane.INFORMATION_MESSAGE);
-
+                showMessage("JRebel for NetBeans has been successfully installed.");
+                
                 logger.info("Restart now");
                 SwingUtilities.invokeLater(() -> {
                     try {
@@ -142,6 +144,22 @@ public class Installer extends ModuleInstall {
         }
     }
 
+    private void showMessage(final String message) {
+        if (SwingUtilities.isEventDispatchThread()) {
+            showMessageInEventDispatcherThread(message);
+        } else {
+            try {
+                SwingUtilities.invokeAndWait(() -> showMessageInEventDispatcherThread(message));
+            } catch (Exception ex) {
+                logger.log(Level.WARNING, "Failed to show the message '" + message + "' in UI", ex);
+            }
+        }
+    }
+    
+    private void showMessageInEventDispatcherThread(String message) {
+        JOptionPane.showMessageDialog(null, message, "JRebel for NetBeans Installer", JOptionPane.INFORMATION_MESSAGE);
+    }
+    
     private static UpdateUnitProvider createZTProvider() throws MalformedURLException {
         return UpdateUnitProviderFactory.getDefault().create("ZT Provider TEST", "Zeroturnaround Provider TEST ", new URL(ZT_PROVIDER_URL));
     }

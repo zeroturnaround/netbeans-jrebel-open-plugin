@@ -25,6 +25,7 @@
                 <configuration>
                     <licenseName>MIT License (MIT)</licenseName>
                     <licenseFile>${project.basedir}/LICENSE.txt</licenseFile>
+                    <requiresRestart>true</requiresRestart>
                 </configuration>
             </plugin>
             <plugin>
@@ -56,6 +57,26 @@
             </plugin>
         </plugins>
     </build>
+    
+    <profiles>
+        <profile>
+            <id>sign</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.netbeans.utilities</groupId>
+                        <artifactId>nbm-maven-plugin</artifactId>
+                        <configuration combine.children="append">
+                            <keystore>${keystore}</keystore>
+                            <keystorepassword>${storepass}</keystorepassword>
+                            <keystorealias>${alias}</keystorealias>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+            
     <dependencies>
         <dependency>
             <groupId>org.netbeans.api</groupId>
@@ -83,6 +104,5 @@
             <version>RELEASE110</version>
         </dependency>
     </dependencies>
-
-
+    
 </project>
