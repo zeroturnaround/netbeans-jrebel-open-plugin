@@ -23,145 +23,139 @@
  */
 package org.zeroturnaround.netbeans.open;
 
-import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JOptionPane;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 import javax.swing.SwingUtilities;
 import org.netbeans.api.autoupdate.InstallSupport;
 import org.netbeans.api.autoupdate.OperationContainer;
-import org.netbeans.api.autoupdate.OperationException;
-import org.netbeans.api.autoupdate.OperationSupport;
 import org.netbeans.api.autoupdate.UpdateElement;
 import org.netbeans.api.autoupdate.UpdateUnit;
 import org.netbeans.api.autoupdate.UpdateUnitProvider;
 import org.netbeans.api.autoupdate.UpdateUnitProviderFactory;
 import org.netbeans.api.progress.ProgressHandle;
+import org.netbeans.modules.autoupdate.ui.api.PluginManager;
 import org.openide.modules.ModuleInstall;
-import org.openide.util.Exceptions;
+import org.openide.util.NbBundle;
+import org.openide.util.NbPreferences;
 
 public class Installer extends ModuleInstall {
 
-    private static final Logger logger = Logger.getLogger(Installer.class.getName());
+  private static final Logger logger = Logger.getLogger(Installer.class.getName());
 
-    private static final String ZT_PROVIDER_URL = "http://localhost:8000/updates.xml";
+  private static final String ZT_PROVIDER_URL = "http://localhost:8000/updates.xml";
+  private static final String JREBEL_MODULE_CODE_NAME = "org.zeroturnaround.jrebel.netbeans";
+  private static final String JREBEL_INSTALLED = "jrebel.installed";
 
-    @Override
-    public void restored() {
-        logger.info("=== STARTING! ===");
+  private static ResourceBundle bundle = NbBundle.getBundle(Installer.class);
 
-        try {
+  @Override
+  public void restored() {
+    logger.log(Level.INFO, "=== STARTING! [{0}] ===", Thread.currentThread().getName());
 
-            UpdateUnitProvider ztProvider = UpdateUnitProviderFactory.getDefault().getUpdateUnitProviders(false).stream()
-                    .filter(provider -> ZT_PROVIDER_URL.equals(provider.getProviderURL()))
-                    .findAny()
-                    .orElse(createZTProvider());
+    try {
 
-            try (ProgressHandle handle = ProgressHandle.createHandle("Refreshing updates information...")) {
-                handle.start();
-                handle.switchToIndeterminate();
-                
-                ztProvider.refresh(handle, true);
-                
-                handle.finish();
-            }
+      UpdateUnitProvider ztProvider = UpdateUnitProviderFactory.getDefault().getUpdateUnitProviders(false).stream()
+              .filter(provider -> ZT_PROVIDER_URL.equals(provider.getProviderURL()))
+              .findAny()
+              .or(() -> Optional.of(createZTProvider()))
+              .get();
 
-            List<UpdateUnit> updateUnits = ztProvider.getUpdateUnits();
-            updateUnits.stream().forEach(uu -> logger.info("Update Unit: " + uu));
-            Optional<UpdateUnit> maybeModuleUpdateUnit = updateUnits.stream().filter(uu -> "org.zeroturnaround.jrebel.netbeans".equals(uu.getCodeName())).findAny();
+      try ( ProgressHandle handle = ProgressHandle.createHandle(bundle.getString("Installer.refreshing.updates.info"))) {
+        handle.start();
+        handle.switchToIndeterminate();
 
-            UpdateUnit jrebelUnit = null;
-            UpdateElement jrebelUpdate = null;
+        ztProvider.refresh(handle, true);
 
-            if (maybeModuleUpdateUnit.isPresent()) {
-                jrebelUnit = maybeModuleUpdateUnit.get();
-                logger.info("JRebel update unit: " + jrebelUnit);
+        handle.finish();
+      }
 
-                List<UpdateElement> updateElements = jrebelUnit.getAvailableUpdates();
-                if (!updateElements.isEmpty()) {
-                    jrebelUpdate = updateElements.get(updateElements.size() - 1);
-                    logger.info("JRebel update: " + jrebelUpdate);
-                } else {
-                    logger.info("JRebel updates NOT FOUND");
-                    return;
-                }
-            } else {
-                logger.info("JRebel update unit NOT FOUND");
-                return;
-            }
+      List<UpdateUnit> updateUnits = ztProvider.getUpdateUnits();
+      Optional<UpdateUnit> maybeModuleUpdateUnit = updateUnits.stream().filter(uu -> JREBEL_MODULE_CODE_NAME.equals(uu.getCodeName())).findAny();
 
-            OperationContainer<InstallSupport> operationContainer = OperationContainer.createForInstall();
-            if (!operationContainer.canBeAdded(jrebelUnit, jrebelUpdate)) {
-                logger.warning("Cannot install module update: " + jrebelUpdate);
-                return;
-            }
-            operationContainer.add(Collections.singleton(jrebelUpdate));
+      if (!maybeModuleUpdateUnit.isPresent()) {
+        logger.info("JRebel update unit NOT FOUND");
+        return;
+      }
 
-            InstallSupport support = operationContainer.getSupport();
+      if (isJRebelInstalled()) {
+        logger.info("JRebel has been marked installed - LEAVING");
+        return;
+      }
 
-            InstallSupport.Validator v;
-            InstallSupport.Installer i;
-            OperationSupport.Restarter r;
+      setJRebelInstalled(true); //either already installed or tentative state (immediate restart from the wizard won't give a chance to update the preference)
 
-            logger.info("Downloading " + jrebelUpdate);
+      UpdateUnit jrebelUnit = maybeModuleUpdateUnit.get();
+      logger.log(Level.INFO, "JRebel update unit: {0}", jrebelUnit);
 
-            try ( ProgressHandle downloadHandle = ProgressHandle.createHandle("Downloading...")) {
-                v = support.doDownload(downloadHandle, true, true);
-            }
-            logger.info("Validating " + jrebelUpdate);
-            try ( ProgressHandle validateHandle = ProgressHandle.createHandle("Validating...")) {
-                i = support.doValidate(v, validateHandle);
-            }
-            logger.info("Installing " + jrebelUpdate);
-            try ( ProgressHandle installHandle = ProgressHandle.createHandle("Installing...")) {
-                r = support.doInstall(i, installHandle);
-            }
-            logger.info("Installed! " + jrebelUpdate);
+      List<UpdateElement> updateElements = jrebelUnit.getAvailableUpdates();
 
-            if (r != null) {
+      if (updateElements.isEmpty()) {
+        logger.info("NO JRebel updates FOUND");
+        return;
+      }
 
-                showMessage("JRebel for NetBeans has been successfully installed.");
-                
-                logger.info("Restart now");
-                SwingUtilities.invokeLater(() -> {
-                    try {
-                        support.doRestart(r, null);
-                    } catch (OperationException ex) {
-                        logger.log(Level.SEVERE, "Restart failed", ex);
-                    }
-                });
-            }
+      UpdateElement jrebelUpdate = updateElements.get(updateElements.size() - 1);
+      logger.log(Level.INFO, "JRebel update: {0}", jrebelUpdate);
 
-        } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Unexpected failure", ex);
-        } finally {
-            logger.info("=== FINISHED! ===");
-        }
+      OperationContainer<InstallSupport> operationContainer = OperationContainer.createForInstall();
+      if (!operationContainer.canBeAdded(jrebelUnit, jrebelUpdate)) {
+        logger.log(Level.WARNING, "Cannot install module update: {0}", jrebelUpdate);
+        return;
+      }
+      operationContainer.add(Collections.singleton(jrebelUpdate));
+
+      if (SwingUtilities.isEventDispatchThread()) {
+        openJRebelInstallWizard(operationContainer);
+      } else {
+        SwingUtilities.invokeLater(() -> {
+          openJRebelInstallWizard(operationContainer);
+        });
+      }
+
+    } catch (Exception ex) {
+      logger.log(Level.SEVERE, "Unexpected failure", ex);
+    } finally {
+      logger.info("=== FINISHED! ===");
     }
+  }
 
-    private void showMessage(final String message) {
-        if (SwingUtilities.isEventDispatchThread()) {
-            showMessageInEventDispatcherThread(message);
-        } else {
-            try {
-                SwingUtilities.invokeAndWait(() -> showMessageInEventDispatcherThread(message));
-            } catch (Exception ex) {
-                logger.log(Level.WARNING, "Failed to show the message '" + message + "' in UI", ex);
-            }
-        }
-    }
-    
-    private void showMessageInEventDispatcherThread(String message) {
-        JOptionPane.showMessageDialog(null, message, "JRebel for NetBeans Installer", JOptionPane.INFORMATION_MESSAGE);
-    }
-    
-    private static UpdateUnitProvider createZTProvider() throws MalformedURLException {
-        return UpdateUnitProviderFactory.getDefault().create("ZT Provider TEST", "Zeroturnaround Provider TEST ", new URL(ZT_PROVIDER_URL));
-    }
+  private void openJRebelInstallWizard(OperationContainer<InstallSupport> operationContainer) {
+    logger.info("JRebel installation - open wizard");
+    boolean success = PluginManager.openInstallWizard(operationContainer);
+    logger.log(Level.INFO, "JRebel installation result: {0}", success);
+    setJRebelInstalled(success);
+  }
 
+  private static UpdateUnitProvider createZTProvider() {
+    try {
+      return UpdateUnitProviderFactory.getDefault().create(bundle.getString("Installer.update.unit.provider.name"), bundle.getString("Installer.update.unit.provider.displayname"), new URL(ZT_PROVIDER_URL));
+    } catch (MalformedURLException ex) {
+      throw new IllegalStateException("Could not create ZT update unit provider", ex);
+    }
+  }
+
+  private Preferences getPreferences() {
+    return NbPreferences.forModule(Installer.class);
+  }
+
+  private void setJRebelInstalled(boolean installed) {
+    try {
+      getPreferences().putBoolean(JREBEL_INSTALLED, installed);
+      getPreferences().flush();
+    } catch (BackingStoreException ex) {
+      throw new IllegalStateException("Could not update preference value", ex);
+    }
+  }
+
+  private boolean isJRebelInstalled() {
+    return getPreferences().getBoolean(JREBEL_INSTALLED, false);
+  }
 }
