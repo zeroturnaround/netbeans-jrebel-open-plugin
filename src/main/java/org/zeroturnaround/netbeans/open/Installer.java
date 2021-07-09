@@ -50,7 +50,7 @@ public class Installer extends ModuleInstall {
 
   private static final Logger logger = Logger.getLogger(Installer.class.getName());
 
-  private static final String ZT_PROVIDER_URL = "http://localhost:8000/updates.xml";
+  private static final String ZT_PROVIDER_URL = "https://dl.zeroturnaround.com/jrebel/netbeans/updates-nightly.xml";
   private static final String JREBEL_MODULE_CODE_NAME = "org.zeroturnaround.jrebel.netbeans";
   private static final String JREBEL_INSTALLED = "jrebel.installed";
 
@@ -136,7 +136,9 @@ public class Installer extends ModuleInstall {
 
   private static UpdateUnitProvider createZTProvider() {
     try {
-      return UpdateUnitProviderFactory.getDefault().create(bundle.getString("Installer.update.unit.provider.name"), bundle.getString("Installer.update.unit.provider.displayname"), new URL(ZT_PROVIDER_URL));
+      UpdateUnitProvider provider = UpdateUnitProviderFactory.getDefault().create(bundle.getString("Installer.update.unit.provider.name"), bundle.getString("Installer.update.unit.provider.displayname"), new URL(ZT_PROVIDER_URL));
+      provider.setEnable(true);
+      return provider;
     } catch (MalformedURLException ex) {
       throw new IllegalStateException("Could not create ZT update unit provider", ex);
     }
