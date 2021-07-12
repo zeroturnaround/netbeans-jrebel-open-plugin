@@ -50,7 +50,7 @@ public class Installer extends ModuleInstall {
 
   private static final Logger logger = Logger.getLogger(Installer.class.getName());
 
-  private static final String ZT_PROVIDER_URL = "https://dl.zeroturnaround.com/jrebel/netbeans/updates-nightly.xml";
+  private static final String JREBEL_PROVIDER_URL = "https://dl.zeroturnaround.com/jrebel/netbeans/updates-nightly.xml";
   private static final String JREBEL_MODULE_CODE_NAME = "org.zeroturnaround.jrebel.netbeans";
   private static final String JREBEL_INSTALLED = "jrebel.installed";
 
@@ -62,22 +62,22 @@ public class Installer extends ModuleInstall {
 
     try {
 
-      UpdateUnitProvider ztProvider = UpdateUnitProviderFactory.getDefault().getUpdateUnitProviders(false).stream()
-              .filter(provider -> ZT_PROVIDER_URL.equals(provider.getProviderURL()))
+      UpdateUnitProvider jrebelProvider = UpdateUnitProviderFactory.getDefault().getUpdateUnitProviders(false).stream()
+              .filter(provider -> JREBEL_PROVIDER_URL.equals(provider.getProviderURL()))
               .findAny()
-              .or(() -> Optional.of(createZTProvider()))
+              .or(() -> Optional.of(createJRebelProvider()))
               .get();
 
       try ( ProgressHandle handle = ProgressHandle.createHandle(bundle.getString("Installer.refreshing.updates.info"))) {
         handle.start();
         handle.switchToIndeterminate();
 
-        ztProvider.refresh(handle, true);
+        jrebelProvider.refresh(handle, true);
 
         handle.finish();
       }
 
-      List<UpdateUnit> updateUnits = ztProvider.getUpdateUnits();
+      List<UpdateUnit> updateUnits = jrebelProvider.getUpdateUnits();
       Optional<UpdateUnit> maybeModuleUpdateUnit = updateUnits.stream().filter(uu -> JREBEL_MODULE_CODE_NAME.equals(uu.getCodeName())).findAny();
 
       if (!maybeModuleUpdateUnit.isPresent()) {
@@ -134,13 +134,13 @@ public class Installer extends ModuleInstall {
     setJRebelInstalled(success);
   }
 
-  private static UpdateUnitProvider createZTProvider() {
+  private static UpdateUnitProvider createJRebelProvider() {
     try {
-      UpdateUnitProvider provider = UpdateUnitProviderFactory.getDefault().create(bundle.getString("Installer.update.unit.provider.name"), bundle.getString("Installer.update.unit.provider.displayname"), new URL(ZT_PROVIDER_URL));
+      UpdateUnitProvider provider = UpdateUnitProviderFactory.getDefault().create(bundle.getString("Installer.update.unit.provider.name"), bundle.getString("Installer.update.unit.provider.displayname"), new URL(JREBEL_PROVIDER_URL));
       provider.setEnable(true);
       return provider;
     } catch (MalformedURLException ex) {
-      throw new IllegalStateException("Could not create ZT update unit provider", ex);
+      throw new IllegalStateException("Could not create JRebel update unit provider", ex);
     }
   }
 
