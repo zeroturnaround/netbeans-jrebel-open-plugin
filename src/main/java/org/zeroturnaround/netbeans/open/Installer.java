@@ -50,7 +50,7 @@ public class Installer extends ModuleInstall {
 
   private static final Logger logger = Logger.getLogger(Installer.class.getName());
 
-  private static final String JREBEL_PROVIDER_URL = "https://dl.zeroturnaround.com/jrebel/netbeans/updates-nightly.xml";
+  private static final String JREBEL_PROVIDER_URL = "https://dl.zeroturnaround.com/jrebel/netbeans/updates.xml";
   private static final String JREBEL_MODULE_CODE_NAME = "org.zeroturnaround.jrebel.netbeans";
   private static final String JREBEL_INSTALLED = "jrebel.installed";
 
@@ -58,7 +58,7 @@ public class Installer extends ModuleInstall {
 
   @Override
   public void restored() {
-    logger.log(Level.INFO, "=== STARTING! [{0}] ===", Thread.currentThread().getName());
+    logger.log(Level.INFO, "JRebel Installer starting in [{0}]", Thread.currentThread().getName());
 
     try {
 
@@ -123,7 +123,7 @@ public class Installer extends ModuleInstall {
     } catch (Exception ex) {
       logger.log(Level.SEVERE, "Unexpected failure", ex);
     } finally {
-      logger.info("=== FINISHED! ===");
+      logger.log(Level.INFO, "JRebel Installer finished in [{0}]", Thread.currentThread().getName());
     }
   }
 
