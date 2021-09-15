@@ -30,7 +30,6 @@
     <url>https://github.com/zeroturnaround/maven-jrebel-plugin</url>
     <connection>scm:git:git@github.com:zeroturnaround/netbeans-jrebel-open-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:zeroturnaround/netbeans-jrebel-open-plugin.git</developerConnection>
-    <tag>HEAD</tag>
   </scm>
 
   <build>
@@ -88,6 +87,18 @@
               <keystorepassword>${storepass}</keystorepassword>
               <keystorealias>${alias}</keystorealias>
             </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>publish</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-release-plugin</artifactId>
+            <version>2.4.1</version>
           </plugin>
         </plugins>
       </build>
