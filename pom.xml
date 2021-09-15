@@ -5,6 +5,18 @@
   <artifactId>netbeans-open</artifactId>
   <version>0.9.0-SNAPSHOT</version>
   <packaging>nbm</packaging>
+  
+  <name>JRebel for NetBeans Installer</name>
+  <description>JRebel for NetBeans Installer: JRebel is a productivity tool that allows developers to reload code changes instantly.</description>
+  <url>https://www.jrebel.com/products/jrebel</url>
+  
+  <developers>
+    <developer>
+      <id>AK</id>
+      <name>Ago Kuusik</name>
+      <email>akuusik@perforce.com</email>
+    </developer>
+  </developers>
 
   <properties>
     <releaseVersion>${project.version}</releaseVersion>
@@ -69,6 +81,7 @@
         <version>2.5.3</version>
         <configuration>
           <arguments>-Dmaven.javadoc.skip=true</arguments>
+          <releaseProfiles>release</releaseProfiles>
         </configuration>
       </plugin>
     </plugins>
@@ -87,6 +100,26 @@
               <keystorepassword>${storepass}</keystorepassword>
               <keystorealias>${alias}</keystorealias>
             </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>
