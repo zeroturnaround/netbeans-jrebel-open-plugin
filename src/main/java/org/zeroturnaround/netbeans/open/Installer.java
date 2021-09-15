@@ -65,8 +65,7 @@ public class Installer extends ModuleInstall {
       UpdateUnitProvider jrebelProvider = UpdateUnitProviderFactory.getDefault().getUpdateUnitProviders(false).stream()
               .filter(provider -> JREBEL_PROVIDER_URL.equals(provider.getProviderURL()))
               .findAny()
-              .or(() -> Optional.of(createJRebelProvider()))
-              .get();
+              .orElseGet(() -> createJRebelProvider());
 
       try ( ProgressHandle handle = ProgressHandle.createHandle(bundle.getString("Installer.refreshing.updates.info"))) {
         handle.start();
