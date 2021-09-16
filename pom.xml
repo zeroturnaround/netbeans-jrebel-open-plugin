@@ -40,8 +40,8 @@
   
   <scm>
     <url>https://github.com/zeroturnaround/netbeans-jrebel-open-plugin</url>
-    <connection>scm:git:https://github.com/zeroturnaround/netbeans-jrebel-open-plugin.git</connection>
-    <developerConnection>scm:git:https://github.com/zeroturnaround/netbeans-jrebel-open-plugin.git</developerConnection>
+    <connection>scm:git:git://github.com/zeroturnaround/netbeans-jrebel-open-plugin.git</connection>
+    <developerConnection>scm:git:git://github.com/zeroturnaround/netbeans-jrebel-open-plugin.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
