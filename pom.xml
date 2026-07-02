@@ -89,9 +89,9 @@
         <artifactId>maven-release-plugin</artifactId>
         <version>2.5.3</version>
         <configuration>
-          <arguments>-Dmaven.javadoc.skip=true</arguments>
           <!-- "sign" added so the release build also code-signs the .nbm (PKCS#11) with the production
-               cert; "release" activates GPG artifact signing for Maven Central. -->
+               cert; "release" activates GPG artifact signing + sources/javadoc jars for Maven Central.
+               (javadoc is no longer skipped: Maven Central requires a -javadoc.jar for the module jar.) -->
           <releaseProfiles>release,sign</releaseProfiles>
         </configuration>
       </plugin>
@@ -172,6 +172,44 @@
                 <phase>verify</phase>
                 <goals>
                   <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <!-- Maven Central requires a -sources.jar for the published module jar. -->
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>3.3.1</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <!-- Maven Central requires a -javadoc.jar; it only checks that the jar exists, not its
+                 contents. doclint=none + failOnError=false + quiet guarantee the jar is produced even
+                 if the (minimal) installer sources have imperfect/no javadoc, so the release won't fail
+                 on javadoc lint. -->
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.11.2</version>
+            <configuration>
+              <doclint>none</doclint>
+              <failOnError>false</failOnError>
+              <quiet>true</quiet>
+            </configuration>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>jar</goal>
                 </goals>
               </execution>
             </executions>
