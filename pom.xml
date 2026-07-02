@@ -220,17 +220,21 @@
   </dependencies>
 
   <distributionManagement>
+    <!-- Sonatype OSSRH (oss.sonatype.org) was shut down 2025-06-30. These point at the Central Publisher
+         Portal endpoints, mirroring the gradle-jrebel-plugin migration: snapshots to the Portal snapshot
+         repo, releases to the OSSRH Staging API compatibility service (which stages, then you publish
+         from the Portal UI -> syncs to repo1.maven.org, where the NetBeans plugin portal points).
+         Server ids are unchanged, so the existing Sonatype credentials in the node's settings.xml
+         (sonatype-nexus-staging / -snapshots) are reused - no new token needed. -->
     <repository>
       <id>sonatype-nexus-staging</id>
-      <name>Sonatype OSS Staging</name>
-      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-      <layout>default</layout>
+      <name>Central Portal (OSSRH Staging API)</name>
+      <url>https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2</url>
     </repository>
     <snapshotRepository>
       <id>sonatype-nexus-snapshots</id>
-      <name>Sonatype OSS Snapshots</name>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-      <layout>default</layout>
+      <name>Central Portal Snapshots</name>
+      <url>https://central.sonatype.com/repository/maven-snapshots</url>
     </snapshotRepository>
   </distributionManagement>
 </project>
