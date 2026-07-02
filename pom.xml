@@ -220,21 +220,24 @@
   </dependencies>
 
   <distributionManagement>
-    <!-- Sonatype OSSRH (oss.sonatype.org) was shut down 2025-06-30. These point at the Central Publisher
-         Portal endpoints, mirroring the gradle-jrebel-plugin migration: snapshots to the Portal snapshot
-         repo, releases to the OSSRH Staging API compatibility service (which stages, then you publish
-         from the Portal UI -> syncs to repo1.maven.org, where the NetBeans plugin portal points).
-         Server ids are unchanged, so the existing Sonatype credentials in the node's settings.xml
-         (sonatype-nexus-staging / -snapshots) are reused - no new token needed. -->
+    <!-- Sonatype OSSRH (oss.sonatype.org) was shut down 2025-06-30; this mirrors the
+         gradle-jrebel-plugin migration.
+         Releases -> OSSRH Staging API compatibility service (stages, then published from the Portal UI
+         -> syncs to repo1.maven.org, where the NetBeans plugin portal points). Uses the existing
+         Sonatype credentials via the unchanged sonatype-nexus-staging server in settings.xml.
+         Snapshots -> internal zt-public-snapshots, NOT Maven Central: SNAPSHOT publishing is not
+         enabled for the org.zeroturnaround namespace on the Central Portal (see gradle-jrebel-plugin,
+         which routes snapshots the same way). Installer snapshots are dev-only; only releases are
+         portal-facing. Server id zt-public-snapshots already exists in the node's settings.xml. -->
     <repository>
       <id>sonatype-nexus-staging</id>
       <name>Central Portal (OSSRH Staging API)</name>
       <url>https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2</url>
     </repository>
     <snapshotRepository>
-      <id>sonatype-nexus-snapshots</id>
-      <name>Central Portal Snapshots</name>
-      <url>https://central.sonatype.com/repository/maven-snapshots</url>
+      <id>zt-public-snapshots</id>
+      <name>ZeroTurnaround Public Snapshots</name>
+      <url>https://repos.zeroturnaround.com/nexus/content/repositories/zt-public-snapshots/</url>
     </snapshotRepository>
   </distributionManagement>
 </project>
