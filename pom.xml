@@ -23,6 +23,14 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.compiler.source>1.8</maven.compiler.source>
+    <!-- DigiCert Software Trust Manager (KeyLocker) code signing (see the "sign" profile). The .nbm is
+         signed with jarsigner over PKCS#11 because nbm-maven-plugin's own signing only supports file
+         keystores. Default alias is the 30-day TEST cert used for snapshot/CI builds; the "release"
+         profile overrides it with the production cert (the Installer is published to the NetBeans
+         plugin portal, where users verify the signature). -->
+    <signing.cert.alias>Perforce-Code-Signing-General-Use-TEST-30day-Autorotating</signing.cert.alias>
+    <tsa>http://timestamp.digicert.com</tsa>
+    <signing.pkcs11.config>/opt/smtools/digicert-pkcs11.cfg</signing.pkcs11.config>
   </properties>
 
   <organization>
@@ -82,7 +90,9 @@
         <version>2.5.3</version>
         <configuration>
           <arguments>-Dmaven.javadoc.skip=true</arguments>
-          <releaseProfiles>release</releaseProfiles>
+          <!-- "sign" added so the release build also code-signs the .nbm (PKCS#11) with the production
+               cert; "release" activates GPG artifact signing for Maven Central. -->
+          <releaseProfiles>release,sign</releaseProfiles>
         </configuration>
       </plugin>
     </plugins>
@@ -91,22 +101,66 @@
   <profiles>
     <profile>
       <id>sign</id>
+      <!-- Signs the produced .nbm with the DigiCert Software Trust Manager (KeyLocker) key via
+           jarsigner over PKCS#11 (nbm-maven-plugin's own signing only supports file keystores).
+           Bound to pre-integration-test: after nbm:nbm (package) so the .nbm exists, and before the
+           "release" profile's maven-gpg-plugin (verify) so GPG signs the already-code-signed .nbm.
+           Auth is via the SM_* env vars injected by the Jenkins job and the smpkcs11.so module
+           provisioned by pe-chef (digicert::smtools). Snapshot/CI builds use the TEST cert (default
+           ${signing.cert.alias}); a release signs with the production cert (release profile). -->
       <build>
         <plugins>
           <plugin>
-            <groupId>org.apache.netbeans.utilities</groupId>
-            <artifactId>nbm-maven-plugin</artifactId>
-            <configuration combine.children="append">
-              <keystore>${keystore}</keystore>
-              <keystorepassword>${storepass}</keystorepassword>
-              <keystorealias>${alias}</keystorealias>
-            </configuration>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jarsigner-plugin</artifactId>
+            <version>3.0.0</version>
+            <executions>
+              <execution>
+                <id>sign-nbm</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+                <configuration>
+                  <!-- Sign the .nbm produced by nbm:nbm (package phase), not the module jar. -->
+                  <archiveDirectory>${project.build.directory}</archiveDirectory>
+                  <includes>
+                    <include>*.nbm</include>
+                  </includes>
+                  <processMainArtifact>false</processMainArtifact>
+                  <processAttachedArtifacts>false</processAttachedArtifacts>
+                  <storetype>PKCS11</storetype>
+                  <keystore>NONE</keystore>
+                  <!-- KeyLocker authenticates via the SM_* env vars; the PKCS#11 PIN is unused, so a
+                       literal "NONE" avoids an interactive passphrase prompt in non-interactive CI. -->
+                  <storepass>NONE</storepass>
+                  <providerClass>sun.security.pkcs11.SunPKCS11</providerClass>
+                  <providerArg>${signing.pkcs11.config}</providerArg>
+                  <alias>${signing.cert.alias}</alias>
+                  <tsa>${tsa}</tsa>
+                  <arguments>
+                    <argument>-digestalg</argument>
+                    <argument>SHA-256</argument>
+                    <argument>-sigalg</argument>
+                    <argument>SHA256withRSA</argument>
+                    <argument>-tsadigestalg</argument>
+                    <argument>SHA-256</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>
     </profile>
     <profile>
       <id>release</id>
+      <properties>
+        <!-- Released Installer .nbm (published to the NetBeans plugin portal) is code-signed with the
+             production certificate. Activated alongside the "sign" profile via the release plugin's
+             releaseProfiles, so it just overrides the (TEST) default alias. -->
+        <signing.cert.alias>Perforce-Code-Signing-General-Use-Prod-2026</signing.cert.alias>
+      </properties>
       <build>
         <plugins>
           <plugin>
