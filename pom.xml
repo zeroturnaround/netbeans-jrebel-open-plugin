@@ -28,7 +28,7 @@
          keystores. Default alias is the 30-day TEST cert used for snapshot/CI builds; the "release"
          profile overrides it with the production cert (the Installer is published to the NetBeans
          plugin portal, where users verify the signature). -->
-    <signing.cert.alias>Perforce-Code-Signing-General-Use-TEST-30day-Autorotating</signing.cert.alias>
+    <signing.cert.alias>Perforce-Code-Signing-General-Use-TEST-2026-08-15</signing.cert.alias>
     <tsa>http://timestamp.digicert.com</tsa>
     <signing.pkcs11.config>/opt/smtools/digicert-pkcs11.cfg</signing.pkcs11.config>
   </properties>
