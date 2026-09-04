@@ -25,9 +25,14 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <!-- DigiCert Software Trust Manager (KeyLocker) code signing (see the "sign" profile). The .nbm is
          signed with jarsigner over PKCS#11 because nbm-maven-plugin's own signing only supports file
-         keystores. Default alias is the 30-day TEST cert used for snapshot/CI builds; the "release"
-         profile overrides it with the production cert (the Installer is published to the NetBeans
-         plugin portal, where users verify the signature). -->
+         keystores. The alias below is the monthly-rotating TEST cert used for snapshot/CI builds; the
+         "release" profile overrides it with the production cert (the Installer is published to the
+         NetBeans plugin portal, where users verify the signature).
+
+         The source of truth for the TEST alias is the Jenkins global property SIGNING_CERT_ALIAS_TEST
+         (Manage Jenkins > System > Global properties), applied by the "signing-alias-from-env" profile.
+         The literal here is only a fallback for local/manual signing runs and will go stale after the
+         next rotation; override it directly with -Dsigning.cert.alias=<keypair-alias>. -->
     <signing.cert.alias>Perforce-Code-Signing-General-Use-TEST-2026-08-15</signing.cert.alias>
     <tsa>http://timestamp.digicert.com</tsa>
     <signing.pkcs11.config>/opt/smtools/digicert-pkcs11.cfg</signing.pkcs11.config>
@@ -99,6 +104,32 @@
   </build>
 
   <profiles>
+    <profile>
+      <id>signing-alias-from-env</id>
+      <!-- Takes the snapshot/CI (TEST) keypair alias from the Jenkins global property
+           SIGNING_CERT_ALIAS_TEST (Manage Jenkins > System > Global properties), so the monthly
+           certificate rotation is a single edit there instead of a commit in every repository that
+           signs.
+
+           Activating on the presence of the variable, rather than writing
+           ${env.SIGNING_CERT_ALIAS_TEST} straight into <properties>, is what keeps local builds safe:
+           with the variable unset this profile stays inert and signing.cert.alias keeps its declared
+           fallback, whereas an unset ${env.*} in <properties> is not blanked by Maven but handed to
+           jarsigner verbatim, as the literal string "${env.SIGNING_CERT_ALIAS_TEST}".
+
+           Declared before the "release" profile on purpose: when several active profiles set the same
+           property the last one declared wins, so a release (where release:perform activates both
+           "sign" and "release" via releaseProfiles, with the variable also set) still signs with the
+           production certificate. The alias travels as an environment variable rather than a -D
+           because -D is not inherited by the forked release:perform Maven, whereas the environment
+           is. -->
+      <activation>
+        <property><name>env.SIGNING_CERT_ALIAS_TEST</name></property>
+      </activation>
+      <properties>
+        <signing.cert.alias>${env.SIGNING_CERT_ALIAS_TEST}</signing.cert.alias>
+      </properties>
+    </profile>
     <profile>
       <id>sign</id>
       <!-- Signs the produced .nbm with the DigiCert Software Trust Manager (KeyLocker) key via
